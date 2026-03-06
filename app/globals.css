@@ -5,22 +5,22 @@
 @tailwind utilities;
 
 :root {
-  --background: #0D0D0D;
-  --surface: #1A1A1A;
-  --surface-elevated: #252525;
-  --primary: #D4AF37;
-  --primary-hover: #E5C158;
-  --text-primary: #F5F5F5;
-  --text-secondary: #A0A0A0;
-  --border: #333333;
+  /* 中央革命根据地历史博物馆主题色 - 红色革命风格 */
+  --background: transparent;
+  --surface: rgba(45, 21, 21, 0.85);
+  --surface-elevated: rgba(61, 31, 31, 0.9);
+  --primary: #c41e3a;  /* 革命红 */
+  --primary-hover: #e62e4a;
+  --accent: #d4af37;   /* 金色点缀 */
+  --accent-hover: #e5c158;
+  --text-primary: #f5f0e8;
+  --text-secondary: #c8b89a;
+  --border: rgba(196, 30, 58, 0.3);
   --success: #4ADE80;
   --error: #F87171;
 }
 
-* {
-  box-sizing: border-box;
-}
-
+/* Background image - Desktop */
 body {
   color: var(--text-primary);
   background: var(--background);
@@ -28,6 +28,18 @@ body {
   margin: 0;
   padding: 0;
   min-height: 100vh;
+  background-image: url('/background/web.png');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  background-attachment: fixed;
+}
+
+/* Mobile background */
+@media (max-width: 768px) {
+  body {
+    background-image: url('/background/移动端web.png');
+  }
 }
 
 /* Scrollbar styling */

@@ -1,6 +1,6 @@
-# Museum Assistant - 博物馆智能助手
+# Museum Assistant - 中央革命根据地历史博物馆智能助手
 
-基于 Next.js 14 和阿里云 DashScope API 的博物馆展品智能问答助手。
+基于 Next.js 14 和阿里云 DashScope API 的中央革命根据地历史博物馆展品智能问答助手。
 
 ## 功能特性
 

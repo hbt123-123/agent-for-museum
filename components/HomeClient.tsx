@@ -2,8 +2,6 @@
 
 import { useState, useCallback } from "react";
 import ChatArea from "@/components/ChatArea";
-import Gallery from "@/components/Gallery";
-import { ExhibitImage, exhibitImages } from "@/lib/images";
 import { chatConfig } from "@/lib/chat-config";
 
 interface ChatMessage {
@@ -16,14 +14,6 @@ interface ChatMessage {
 export default function Home() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [selectedImage, setSelectedImage] = useState<ExhibitImage | null>(null);
-
-  // Build image context for AI
-  const buildImageContext = useCallback(() => {
-    return exhibitImages
-      .map((img) => `【${img.title}】图片路径: ${img.src} - ${img.description || ""}`)
-      .join("\n");
-  }, []);
 
   // Send message to API
   const handleSendMessage = useCallback(
@@ -40,15 +30,14 @@ export default function Home() {
 
       setMessages((prev) => [...prev, userMessage]);
       setIsLoading(true);
-      setSelectedImage(null);
 
       try {
-        // Build messages for API (include image context in first message if no images attached)
+        // Build messages for API
         const apiMessages = messages.length === 0
           ? [
               {
                 role: "system",
-                content: `${chatConfig.systemPrompt}\n\n展品图片列表:\n${buildImageContext()}`,
+                content: chatConfig.systemPrompt,
               },
             ]
           : [];
@@ -133,61 +122,20 @@ export default function Home() {
         setIsLoading(false);
       }
     },
-    [messages, buildImageContext]
+    [messages]
   );
 
-  // Handle image selection from gallery
-  const handleImageSelect = useCallback((image: ExhibitImage) => {
-    setSelectedImage(image);
-  }, []);
-
-  // Clear selected image
-  const handleClearSelectedImage = useCallback(() => {
-    setSelectedImage(null);
-  }, []);
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Main Layout */}
-      <div className="flex flex-col lg:flex-row h-screen lg:h-[calc(100vh-64px)]">
-        {/* Chat Area - Left */}
-        <div className="w-full lg:w-2/5 h-1/2 lg:h-full border-r border-border">
+    <div className="min-h-screen relative">
+      {/* Main Content - Full width chat */}
+      <div className="flex items-center justify-center min-h-screen p-4">
+        <div className="w-full max-w-4xl">
           <ChatArea
             messages={messages}
             onSendMessage={handleSendMessage}
             isLoading={isLoading}
-            selectedImage={selectedImage}
-            onClearSelectedImage={handleClearSelectedImage}
           />
         </div>
-
-        {/* Gallery Area - Right */}
-        <div className="w-full lg:w-3/5 h-1/2 lg:h-full">
-          <Gallery
-            onImageSelect={handleImageSelect}
-            selectedImageId={selectedImage?.id}
-          />
-        </div>
-      </div>
-
-      {/* Mobile Toggle (optional enhancement) */}
-      <div className="lg:hidden fixed bottom-4 right-4 z-40">
-        <button className="w-14 h-14 rounded-full bg-primary text-black shadow-lg flex items-center justify-center">
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-            />
-          </svg>
-        </button>
       </div>
     </div>
   );

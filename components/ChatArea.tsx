@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
-import { ExhibitImage } from "@/lib/images";
 
 interface ChatMessage {
   id: string;
@@ -14,20 +13,18 @@ interface ChatAreaProps {
   messages: ChatMessage[];
   onSendMessage: (content: string, images?: string[]) => void;
   isLoading: boolean;
-  selectedImage: ExhibitImage | null;
-  onClearSelectedImage: () => void;
 }
 
 export default function ChatArea({
   messages,
   onSendMessage,
   isLoading,
-  selectedImage,
-  onClearSelectedImage,
 }: ChatAreaProps) {
   const [input, setInput] = useState("");
+  const [uploadedImages, setUploadedImages] = useState<string[]>([]);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Auto-scroll to bottom when messages change
   useEffect(() => {
@@ -46,11 +43,11 @@ export default function ChatArea({
     e?.preventDefault();
     
     const trimmedInput = input.trim();
-    if (!trimmedInput && !selectedImage) return;
+    if (!trimmedInput && uploadedImages.length === 0) return;
     
-    const images = selectedImage ? [selectedImage.src] : undefined;
-    onSendMessage(trimmedInput, images);
+    onSendMessage(trimmedInput, uploadedImages.length > 0 ? uploadedImages : undefined);
     setInput("");
+    setUploadedImages([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -60,14 +57,41 @@ export default function ChatArea({
     }
   };
 
+  // Handle image upload
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (!files) return;
+
+    Array.from(files).forEach((file) => {
+      if (file.type.startsWith("image/")) {
+        const reader = new FileReader();
+        reader.onload = (event) => {
+          const result = event.target?.result as string;
+          setUploadedImages((prev) => [...prev, result]);
+        };
+        reader.readAsDataURL(file);
+      }
+    });
+
+    // Reset input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  // Remove uploaded image
+  const removeUploadedImage = (index: number) => {
+    setUploadedImages((prev) => prev.filter((_, i) => i !== index));
+  };
+
   return (
-    <div className="flex flex-col h-full bg-surface rounded-lg overflow-hidden">
+    <div className="flex flex-col h-[85vh] bg-surface/90 backdrop-blur-sm rounded-2xl overflow-hidden border border-border shadow-2xl">
       {/* Header */}
-      <div className="flex items-center gap-3 p-4 border-b border-border bg-surface-elevated">
-        <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+      <div className="flex items-center gap-3 p-4 border-b border-border bg-surface-elevated/80">
+        <div className="w-12 h-12 rounded-full bg-primary flex items-center justify-center shadow-lg">
           <svg
             xmlns="http://www.w3.org/2000/svg"
-            className="h-6 w-6 text-black"
+            className="h-7 w-7 text-white"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -76,15 +100,15 @@ export default function ChatArea({
               strokeLinecap="round"
               strokeLinejoin="round"
               strokeWidth={2}
-              d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+              d="M19 21V5a2 2 0 00-2-2H7a2 00-2 2 0 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
             />
           </svg>
         </div>
         <div>
-          <h1 className="font-heading text-lg font-semibold text-primary">
-            博物馆助手
+          <h1 className="font-heading text-xl font-bold text-primary">
+            瑞金中央革命根据地历史博物馆
           </h1>
-          <p className="text-xs text-text-secondary">AI 智能导览</p>
+          <p className="text-sm text-text-secondary">AI 智能导览 · 竭诚为您服务</p>
         </div>
       </div>
 
@@ -92,10 +116,10 @@ export default function ChatArea({
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
         {messages.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <div className="w-16 h-16 rounded-full bg-surface-elevated flex items-center justify-center mb-4">
+            <div className="w-20 h-20 rounded-full bg-surface-elevated flex items-center justify-center mb-4 shadow-lg">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
-                className="h-8 w-8 text-text-secondary"
+                className="h-10 w-10 text-primary"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -104,16 +128,21 @@ export default function ChatArea({
                   strokeLinecap="round"
                   strokeLinejoin="round"
                   strokeWidth={1.5}
-                  d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
+                  d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"
                 />
               </svg>
             </div>
-            <h3 className="font-heading text-lg text-text-primary mb-2">
-              欢迎来到博物馆
+            <h3 className="font-heading text-2xl text-text-primary mb-3">
+              欢迎来到瑞金中央革命根据地历史博物馆
             </h3>
-            <p className="text-sm text-text-secondary max-w-xs">
-              您可以点击左侧展品图片向我提问，或直接输入文字咨询博物馆相关知识。
+            <p className="text-base text-text-secondary max-w-md leading-relaxed">
+              您可以上传展品图片向我提问，或输入文字咨询博物馆的相关历史知识。
             </p>
+            <div className="mt-6 flex gap-2 text-xs text-text-secondary">
+              <span className="px-3 py-1 bg-surface-elevated rounded-full">上传图片</span>
+              <span className="px-3 py-1 bg-surface-elevated rounded-full">智能问答</span>
+              <span className="px-3 py-1 bg-surface-elevated rounded-full">历史讲解</span>
+            </div>
           </div>
         ) : (
           messages.map((message, index) => (
@@ -127,8 +156,8 @@ export default function ChatArea({
               <div
                 className={`max-w-[85%] rounded-2xl px-4 py-3 ${
                   message.role === "user"
-                    ? "bg-primary text-black"
-                    : "bg-surface-elevated text-text-primary"
+                    ? "bg-primary text-white"
+                    : "bg-surface-elevated text-text-primary border border-border"
                 }`}
               >
                 {/* Show attached images */}
@@ -139,7 +168,7 @@ export default function ChatArea({
                         key={i}
                         src={img}
                         alt="附件"
-                        className="w-16 h-16 object-cover rounded-lg"
+                        className="w-20 h-20 object-cover rounded-lg border border-border"
                       />
                     ))}
                   </div>
@@ -156,11 +185,11 @@ export default function ChatArea({
         {/* Loading indicator */}
         {isLoading && (
           <div className="flex justify-start animate-fade-in">
-            <div className="bg-surface-elevated rounded-2xl px-4 py-3">
+            <div className="bg-surface-elevated rounded-2xl px-4 py-3 border border-border">
               <div className="flex gap-1">
-                <span className="w-2 h-2 bg-text-secondary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
-                <span className="w-2 h-2 bg-text-secondary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
-                <span className="w-2 h-2 bg-text-secondary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "0ms" }} />
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "150ms" }} />
+                <span className="w-2 h-2 bg-primary rounded-full animate-bounce" style={{ animationDelay: "300ms" }} />
               </div>
             </div>
           </div>
@@ -169,31 +198,53 @@ export default function ChatArea({
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Selected Image Preview */}
-      {selectedImage && (
-        <div className="px-4 py-2 border-t border-border bg-surface-elevated flex items-center gap-3">
-          <div className="relative w-12 h-12 rounded-lg overflow-hidden flex-shrink-0">
-            <img
-              src={selectedImage.src}
-              alt={selectedImage.alt}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm font-medium text-text-primary truncate">
-              {selectedImage.title}
-            </p>
-            <p className="text-xs text-text-secondary">
-              将附加到下一条消息
-            </p>
-          </div>
+      {/* Uploaded Images Preview */}
+      {uploadedImages.length > 0 && (
+        <div className="px-4 py-2 border-t border-border bg-surface-elevated/50 flex items-center gap-2 overflow-x-auto">
+          {uploadedImages.map((img, i) => (
+            <div key={i} className="relative w-14 h-14 rounded-lg overflow-hidden flex-shrink-0 group">
+              <img
+                src={img}
+                alt={`上传图片 ${i + 1}`}
+                className="w-full h-full object-cover"
+              />
+              <button
+                onClick={() => removeUploadedImage(i)}
+                className="absolute top-0 right-0 w-5 h-5 bg-black/70 text-white rounded-bl flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          ))}
+          <span className="text-xs text-text-secondary whitespace-nowrap">
+            {uploadedImages.length} 张图片将附加到消息
+          </span>
+        </div>
+      )}
+
+      {/* Input Area */}
+      <form onSubmit={handleSubmit} className="p-4 border-t border-border bg-surface/80">
+        <div className="flex gap-3 items-end">
+          {/* Image Upload Button */}
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            multiple
+            onChange={handleImageUpload}
+            className="hidden"
+          />
           <button
-            onClick={onClearSelectedImage}
-            className="w-8 h-8 flex items-center justify-center rounded-full bg-surface hover:bg-error/20 text-text-secondary hover:text-error transition-colors duration-200"
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="w-12 h-12 flex items-center justify-center rounded-xl bg-surface-elevated border border-border text-text-secondary hover:text-primary hover:border-primary transition-colors duration-200"
+            title="上传图片"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
-              className="h-5 w-5"
+              className="h-6 w-6"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -202,31 +253,29 @@ export default function ChatArea({
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d="M6 18L18 6M6 6l12 12"
+                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
               />
             </svg>
           </button>
-        </div>
-      )}
 
-      {/* Input Area */}
-      <form onSubmit={handleSubmit} className="p-4 border-t border-border bg-surface">
-        <div className="flex gap-3 items-end">
+          {/* Text Input */}
           <div className="flex-1 relative">
             <textarea
               ref={textareaRef}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="输入您的问题..."
+              placeholder="描述您想了解的展品或提出问题..."
               className="w-full px-4 py-3 bg-surface-elevated border border-border rounded-xl text-text-primary placeholder-text-secondary resize-none focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all duration-200"
               rows={1}
             />
           </div>
+          
+          {/* Send Button */}
           <button
             type="submit"
-            disabled={isLoading || (!input.trim() && !selectedImage)}
-            className="px-4 py-3 bg-primary text-black font-medium rounded-xl hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center"
+            disabled={isLoading || (!input.trim() && uploadedImages.length === 0)}
+            className="px-5 py-3 bg-primary text-white font-medium rounded-xl hover:bg-primary-hover disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 flex items-center justify-center shadow-lg"
           >
             {isLoading ? (
               <svg
