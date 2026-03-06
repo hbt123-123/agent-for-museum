@@ -108,7 +108,7 @@ export async function POST(req: NextRequest) {
                       encoder.encode(`data: ${JSON.stringify({ content })}\n\n`)
                     );
                   }
-                } catch (e) {
+                } catch {
                   // Skip malformed JSON
                 }
               }
